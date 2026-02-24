@@ -6,8 +6,7 @@ use App\Models\Colocation;
 use App\Models\Membership;
 use Illuminate\Http\Request;
 
-class ColocationController extends Controller
-{
+class ColocationController extends Controller {
     public function store(Request $request) {
         $user = auth()->user();
 
@@ -29,5 +28,19 @@ class ColocationController extends Controller
         ]);
 
         return to_route('dashboard')->with('success','colcation created succesfully');
+    }
+
+    public function show() {
+        $user = auth()->user();
+
+        $membership = $user->activeMembership;
+
+        if(!$membership) {
+            return to_route('dashboard')->with('info','you have no active colocation');
+        }
+
+        $colocation = $membership->colocation()->with('memberships.user')->first();
+
+        return view('colocation.show',compact('colocation'));
     }
 }
