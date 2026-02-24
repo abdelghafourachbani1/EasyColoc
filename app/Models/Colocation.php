@@ -14,4 +14,11 @@ class Colocation extends Model {
         return $this->belongsTo(User::class , 'owner_id');
     }
 
+    protected $fillable = [
+        'title',
+        'description',
+        'owner_id',
+        'status'
+    ];
+
 }
