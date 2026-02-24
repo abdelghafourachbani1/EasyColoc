@@ -21,4 +21,8 @@ class Colocation extends Model {
         'status'
     ];
 
+    public function invitation() {
+        return $this->hasMany(Invitation::class);
+    }
+
 }
