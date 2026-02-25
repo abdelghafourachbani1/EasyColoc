@@ -8,7 +8,7 @@ use App\Models\Invitation;
 use App\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Pest\Support\Str;
+use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
@@ -25,7 +25,7 @@ class InvitationController extends Controller
         $invitaion = Invitation::create([
             'email' => $request->email,
             'colocation_id' => $colocation->id,
-            'token' => Str::random(50),
+            'token' => Str::random(40),
         ]);
 
         Mail::to($request->email)->send(new ColocationInvitationMail($invitaion));
@@ -33,7 +33,7 @@ class InvitationController extends Controller
     }
 
     public function accept($token) {
-        
+
         $invitaion = Invitation::where('token',$token)
             ->where('status','pending')->firstOrFail();
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ColocationController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
