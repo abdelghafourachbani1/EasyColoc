@@ -37,8 +37,17 @@ Route::middleware('auth')->group(function() {
 Route::middleware('auth')->group(function () {
     Route::post('colocations/{colocation}/invite',[InvitationController::class , 'store'])
         ->name('invitations.store');
+
+    Route::get('/invitations/{token}' , [InvitationController::class , 'accept'])
+        ->name('invitations.accept');
+
+    Route::post('/memberships/{membership}/remove' , [MembershipController::class , 'remove'])
+        ->name('memberships.remove');
+
+    Route::post('/colocation/leave' , [MembershipController::class , 'leave'])
+        ->name('memberships.leave');
     
-})
+});
 
 
 require __DIR__.'/auth.php';

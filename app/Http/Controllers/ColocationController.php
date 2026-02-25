@@ -7,6 +7,7 @@ use App\Models\Membership;
 use Illuminate\Http\Request;
 
 class ColocationController extends Controller {
+
     public function store(Request $request) {
         $user = auth()->user();
 
@@ -31,6 +32,7 @@ class ColocationController extends Controller {
     }
 
     public function show() {
+        
         $user = auth()->user();
 
         $membership = $user->activeMembership;
