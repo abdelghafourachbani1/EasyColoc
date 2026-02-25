@@ -53,4 +53,5 @@ class User extends Authenticatable
     public function activeMembership() {
         return $this->hasOne(Membership::class)->whereNull('left_at');
     }
+
 }

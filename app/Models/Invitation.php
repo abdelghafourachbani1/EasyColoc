@@ -9,4 +9,11 @@ class Invitation extends Model
     public function colocation() {
         return $this->belongsTo(Colocation::class);
     }
+
+    protected $fillable = [
+        'email',
+        'colocation_id',
+        'token',
+        'status'
+    ];
 }
