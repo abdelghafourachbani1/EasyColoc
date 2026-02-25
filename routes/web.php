@@ -31,7 +31,9 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function() {
     Route::post('/invitations' , [InvitationController::class , 'store'])
         ->name('invitations.store');
-    Route::get('/invitations/{token}/{action}' , [InvitationController::class , 'repond'])->name('invitations.respod');
+
+    Route::get('/invitations/{token}/{action}' , [InvitationController::class , 'repond'])
+        ->name('invitations.respod');
 });
 
 Route::middleware('auth')->group(function () {
