@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\ColocationInvitationMail;
 use App\Models\Colocation;
 use App\Models\Invitation;
+use App\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Pest\Support\Str;
@@ -31,6 +32,35 @@ class InvitationController extends Controller
 
     }
 
-    public function accept($token) 
+    public function accept($token) {
+        
+        $invitaion = Invitation::where('token',$token)
+            ->where('status','pending')->firstOrFail();
+
+        $user = auth()->user();
+        
+        if ($user->email !== $invitaion->email) {
+            abort(403);
+        }
+
+        if ($user->activeMembership) {
+            to_route('dashboard');
+        }
+
+        Membership::create([
+            'user_id' => $user->id,
+            'colocation_id' => $invitaion->colocation_id,
+            'role' => 'member',
+            'joindes_at' => now(),
+        ]);
+
+        $invitaion->update([
+            'status' => 'accepted'
+        ]);
+
+        return to_route('colocations.show',$invitaion->colocation_id);
+    } 
+
+
 
 }
