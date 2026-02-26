@@ -41,7 +41,7 @@ class ColocationController extends Controller {
             return to_route('dashboard')->with('info','you have no active colocation');
         }
 
-        $colocation = $membership->colocation()->with('memberships.user')->first();
+        $colocation = $membership->colocation()->with('memberships.user','categories','expenses.payeur','expenses.category')->first();
 
         return view('colocation.show',compact('colocation'));
     }
