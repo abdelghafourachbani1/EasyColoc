@@ -31,17 +31,32 @@ class ColocationController extends Controller {
         return to_route('dashboard')->with('success','colcation created succesfully');
     }
 
-    public function show() {
-        
+    public function show(Request $request)
+    {
         $user = auth()->user();
 
         $membership = $user->activeMembership;
 
-        if(!$membership) {
-            return to_route('dashboard')->with('info','you have no active colocation');
+        if (!$membership) {
+            return to_route('dashboard')->with('info', 'you have no active colocation');
         }
 
-        $colocation = $membership->colocation()->with('memberships.user','categories','expenses.payeur','expenses.category')->first();
+        $month = $request->month;
+
+        $colocation = $membership->colocation()
+            ->with([
+                'memberships.user',
+                'categories',
+                'expenses' => function ($query) use ($month) {
+                    if ($month) {
+                        $query->whereMonth('date', substr($month, 5, 2))
+                            ->whereYear('date', substr($month, 0, 4));
+                    }
+                },
+                'expenses.payeur',
+                'expenses.category'
+            ])
+            ->first();
 
         $balances = [];
         $members = $colocation->memberships->whereNull('left_at')->pluck('user');
@@ -58,6 +73,7 @@ class ColocationController extends Controller {
         foreach ($colocation->expenses as $expense) {
             $numMembers = count($members);
             $share = $expense->amount / $numMembers;
+
             $balances[$expense->user_id]['paid'] += $expense->amount;
 
             foreach ($members as $member) {
@@ -65,39 +81,11 @@ class ColocationController extends Controller {
             }
         }
 
-        foreach ($balances as $id => &$b) {
+        foreach ($balances as &$b) {
             $b['balance'] = $b['paid'] - $b['share'];
         }
 
-        $transactions = [];
-
-        $debtors = collect($balances)->where('balance', '<', 0);
-        $creditors = collect($balances)->where('balance', '>', 0);
-
-        foreach ($debtors as $debtor) {
-            foreach ($creditors as $creditor) {
-
-                if ($debtor['balance'] == 0) break;
-
-                $amount = min(
-                    abs($debtor['balance']),
-                    $creditor['balance']
-                );
-
-                if ($amount > 0) {
-
-                    $transactions[] = [
-                        'from' => $debtor['user']->name,
-                        'to' => $creditor['user']->name,
-                        'amount' => $amount
-                    ];
-
-                    $debtor['balance'] += $amount;
-                    $creditor['balance'] -= $amount;
-                }
-            }
-        }
-
-        return view('colocation.show',compact('colocation','balances'));
+        return view('colocation.show', compact('colocation', 'balances', 'month'));
     }
+
 }

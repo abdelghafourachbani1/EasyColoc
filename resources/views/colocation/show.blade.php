@@ -105,6 +105,21 @@
 
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold">Expenses</h2>
+                    <form method="GET" class="mb-4">
+                        <input type="month"
+                            name="month"
+                            value="{{ $month }}"
+                            class="border p-2 rounded">
+
+                        <button class="bg-gray-800 text-white px-3 py-2 rounded">
+                            Filter
+                        </button>
+
+                        <a href="{{ route('colocation.show') }}"
+                        class="ml-2 text-sm text-gray-500 underline">
+                            Reset
+                        </a>
+                    </form>
 
                 <button onclick="openModal()"
                         class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
@@ -203,7 +218,9 @@
                             $payAmount = min($amountOwed, $creditor['balance']);
                             $settlements[] = [
                                 'from' => $debtor['user']->name,
+                                'from_id' => $debtor['user']->id,
                                 'to' => $creditor['user']->name,
+                                'to_id' => $creditor['user']->id,
                                 'amount' => $payAmount
                             ];
                             $amountOwed -= $payAmount;
@@ -217,12 +234,18 @@
                 @else
                     <ul class="space-y-2">
                         @foreach($settlements as $s)
-                            <li class="flex justify-between bg-gray-100 p-2 rounded">
-                                <span>
-                                    <strong>{{ $s['from'] }}</strong> owes <strong>{{ $s['to'] }}</strong>
-                                </span>
-                                <span class="font-semibold">{{ number_format($s['amount'],2) }}€</span>
-                            </li>
+                            <form method="POST" action="{{ route('payments.store') }}">
+                                @csrf
+
+                                <input type="hidden" name="colocation_id" value="{{ $colocation->id }}">
+                                <input type="hidden" name="from_user_id" value="{{ $s['from_id'] }}">
+                                <input type="hidden" name="to_user_id" value="{{ $s['to_id'] }}">
+                                <input type="hidden" name="amount" value="{{ $s['amount'] }}">
+
+                                <button class="text-sm bg-green-600 text-white px-2 py-1 rounded">
+                                    Mark as paid
+                                </button>
+                            </form>
                         @endforeach
                     </ul>
                 @endif
