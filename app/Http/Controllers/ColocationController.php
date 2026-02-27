@@ -43,6 +43,32 @@ class ColocationController extends Controller {
 
         $colocation = $membership->colocation()->with('memberships.user','categories','expenses.payeur','expenses.category')->first();
 
-        return view('colocation.show',compact('colocation'));
+        $balances = [];
+        $members = $colocation->memberships->whereNull('left_at')->pluck('user');
+
+        foreach ($members as $member) {
+            $balances[$member->id] = [
+                'user' => $member,
+                'paid' => 0,
+                'share' => 0,
+                'balance' => 0
+            ];
+        }
+
+        foreach ($colocation->expenses as $expense) {
+            $numMembers = count($members);
+            $share = $expense->amount / $numMembers;
+            $balances[$expense->user_id]['paid'] += $expense->amount;
+
+            foreach ($members as $member) {
+                $balances[$member->id]['share'] += $share;
+            }
+        }
+
+        foreach ($balances as $id => &$b) {
+            $b['balance'] = $b['paid'] - $b['share'];
+        }
+
+        return view('colocation.show',compact('colocation','balances'));
     }
 }

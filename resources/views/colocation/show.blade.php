@@ -10,6 +10,12 @@
             </div>
         @endif
 
+        @if(session('info'))
+            <div class="bg-blue-100 text-blue-700 p-3 rounded mb-4">
+                {{ session('info') }}
+            </div>
+        @endif
+
         <div class="bg-white shadow rounded p-4 mb-6">
             <h2 class="text-lg font-semibold mb-4">Members</h2>
             @foreach($colocation->memberships as $membership)
@@ -43,7 +49,7 @@
                 <form method="POST" action="{{ route('invitations.store', $colocation->id) }}" class="flex gap-2">
                     @csrf
                     <input type="email" name="email" placeholder="Enter email" required class="border p-2 rounded w-full">
-                    <button type="submit" class="bg-blue-600 text-black px-4 py-2 rounded">Send</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
                 </form>
                 @error('email')
                     <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
@@ -98,6 +104,32 @@
                             <td class="p-2">{{ $expense->date }}</td>
                             <td class="p-2">{{ $expense->payeur->name }}</td>
                             <td class="p-2">{{ $expense->category->name }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white shadow rounded p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Balances</h2>
+            <table class="w-full border">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="p-2">Member</th>
+                        <th class="p-2">Paid</th>
+                        <th class="p-2">Share</th>
+                        <th class="p-2">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($balances as $b)
+                        <tr class="border-b">
+                            <td class="p-2">{{ $b['user']->name }}</td>
+                            <td class="p-2">{{ number_format($b['paid'],2) }}€</td>
+                            <td class="p-2">{{ number_format($b['share'],2) }}€</td>
+                            <td class="p-2 {{ $b['balance'] < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                {{ number_format($b['balance'],2) }}€
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
