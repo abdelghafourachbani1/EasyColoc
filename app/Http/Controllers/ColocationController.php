@@ -69,6 +69,35 @@ class ColocationController extends Controller {
             $b['balance'] = $b['paid'] - $b['share'];
         }
 
+        $transactions = [];
+
+        $debtors = collect($balances)->where('balance', '<', 0);
+        $creditors = collect($balances)->where('balance', '>', 0);
+
+        foreach ($debtors as $debtor) {
+            foreach ($creditors as $creditor) {
+
+                if ($debtor['balance'] == 0) break;
+
+                $amount = min(
+                    abs($debtor['balance']),
+                    $creditor['balance']
+                );
+
+                if ($amount > 0) {
+
+                    $transactions[] = [
+                        'from' => $debtor['user']->name,
+                        'to' => $creditor['user']->name,
+                        'amount' => $amount
+                    ];
+
+                    $debtor['balance'] += $amount;
+                    $creditor['balance'] -= $amount;
+                }
+            }
+        }
+
         return view('colocation.show',compact('colocation','balances'));
     }
 }
