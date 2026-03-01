@@ -65,5 +65,11 @@ Route::post('/colocation/{colocation}/cancel', [ColocationController::class, 'ca
     ->name('colocations.cancel')
     ->middleware('auth');
 
+Route::middleware(['auth', 'can:admin'])->group(function () {
+    Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::post('/admin/toggle-ban/{user}', [AdminController::class, 'toggleBan'])->name('admin.toggleBan');
+});
+
+
 
 require __DIR__.'/auth.php';
