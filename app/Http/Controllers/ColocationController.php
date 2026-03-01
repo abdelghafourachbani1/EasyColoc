@@ -35,48 +35,37 @@ class ColocationController extends Controller {
         return to_route('dashboard')->with('success','colcation created succesfully');
     }
 
-    public function show(Request $request) {
-        $user = auth()->user();
+    public function show($id, Request $request) {
+        $colocation = Colocation::with([
+            'memberships.user',
+            'expenses.payeur',
+            'expenses.category',
+            'categories'
+        ])->findOrFail($id);
 
-        $membership = $user->activeMembership;
+        $month = $request->get('month'); 
 
-        if (!$membership) {
-            return to_route('dashboard')->with('info', 'you have no active colocation');
+        $expenses = $colocation->expenses();
+        if ($month) {
+            $expenses = $expenses->whereYear('date', substr($month, 0, 4))
+                            ->whereMonth('date', substr($month, 5, 2));
         }
+        $expenses = $expenses->with('payeur', 'category')->get();
 
-        $month = $request->month;
-
-        $colocation = $membership->colocation()
-            ->with([
-                'memberships.user',
-                'categories',
-                'expenses' => function ($query) use ($month) {
-                    if ($month) {
-                        $query->whereMonth('date', substr($month, 5, 2))
-                            ->whereYear('date', substr($month, 0, 4));
-                    }
-                },
-                'expenses.payeur',
-                'expenses.category'
-            ])
-            ->first();
-
-        $balances = [];
         $members = $colocation->memberships->whereNull('left_at')->pluck('user');
-
+        $balances = [];
         foreach ($members as $member) {
             $balances[$member->id] = [
                 'user' => $member,
                 'paid' => 0,
                 'share' => 0,
-                'balance' => 0
+                'balance' => 0,
             ];
         }
 
-        foreach ($colocation->expenses as $expense) {
+        foreach ($expenses as $expense) {
             $numMembers = count($members);
             $share = $expense->amount / $numMembers;
-
             $balances[$expense->user_id]['paid'] += $expense->amount;
 
             foreach ($members as $member) {
@@ -84,11 +73,16 @@ class ColocationController extends Controller {
             }
         }
 
-        foreach ($balances as &$b) {
+        foreach ($balances as $id => &$b) {
             $b['balance'] = $b['paid'] - $b['share'];
         }
 
-        return view('colocation.show', compact('colocation', 'balances', 'month'));
+        return view('colocation.show', [
+            'colocation' => $colocation,
+            'balances'   => $balances,
+            'month'      => $month,
+            'expenses'   => $expenses,
+        ]);
     }
 
     public function cancel(Colocation $colocation, BalanceService $balanceService, ReputationService $reputationService) {
@@ -129,7 +123,5 @@ class ColocationController extends Controller {
 
         return to_route('dashboard')->with('success', 'Colocation cancelled successfully.');
     }
-
-
 
 }
