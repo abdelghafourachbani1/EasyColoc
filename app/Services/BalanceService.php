@@ -10,7 +10,9 @@ class BalanceService
     {
         $balance = 0;
 
-        $expenses = $colocation->expenses()->with('participants')->get();
+        $expenses = $colocation->expenses()
+            ->with('participants')
+            ->get();
 
         foreach ($expenses as $expense) {
 
@@ -22,14 +24,26 @@ class BalanceService
 
             $share = $expense->amount / $totalParticipants;
 
-            // ✅ If user paid → others owe him
-            if ($expense->user_id === $userId) {
-                $balance += $expense->amount - $share;
+            $isParticipant = $expense->participants->contains('id', $userId);
+            $isPayer = $expense->user_id === $userId;
+
+            if ($isPayer) {
+                $balance += $expense->amount;
             }
 
-            // ✅ If user is participant → he owes his share
-            if ($expense->participants->contains('id', $userId)) {
+            if ($isParticipant) {
                 $balance -= $share;
+            }
+        }
+
+        foreach ($colocation->payments as $payment) {
+
+            if ($payment->from_user_id === $userId) {
+                $balance += $payment->amount; 
+            }
+
+            if ($payment->to_user_id === $userId) {
+                $balance -= $payment->amount; 
             }
         }
 

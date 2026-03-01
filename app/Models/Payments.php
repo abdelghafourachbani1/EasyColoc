@@ -20,4 +20,5 @@ class Payments extends Model
     public function to() {
         return $this->belongsTo(User::class , 'to_user_id');
     }
+
 }
