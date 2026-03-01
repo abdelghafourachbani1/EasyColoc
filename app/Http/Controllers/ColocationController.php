@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Colocation;
 use App\Models\Membership;
 use Illuminate\Http\Request;
+use \App\Services\BalanceService;
 
 class ColocationController extends Controller {
 
@@ -31,8 +32,7 @@ class ColocationController extends Controller {
         return to_route('dashboard')->with('success','colcation created succesfully');
     }
 
-    public function show(Request $request)
-    {
+    public function show(Request $request) {
         $user = auth()->user();
 
         $membership = $user->activeMembership;
@@ -87,5 +87,38 @@ class ColocationController extends Controller {
 
         return view('colocation.show', compact('colocation', 'balances', 'month'));
     }
+
+    public function cancel(Colocation $colocation) {
+
+        if (auth()->id() !== $colocation->owner_id) {
+            abort(403);
+        }
+
+        $memberships = $colocation->memberships()->whereNull('left_at')->get();
+
+        foreach ($memberships as $membership) {
+
+            $balance = app()->call(
+                [app(BalanceService::class), 'getUserBalance'],
+                ['colocation' => $colocation, 'userId' => $membership->user_id]
+            );
+
+            if ($balance < 0) {
+                $membership->user->decrement('reputation');
+            } else {
+                $membership->user->increment('reputation');
+            }
+
+            $membership->update(['left_at' => now()]);
+        }
+
+        $colocation->update([
+            'status' => 'cancelled'
+        ]);
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Colocation cancelled');
+    }
+
 
 }

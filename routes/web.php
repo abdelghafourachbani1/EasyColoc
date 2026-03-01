@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\ColocationController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\ProfileController;
@@ -55,10 +57,13 @@ Route::middleware('auth')->group(function () {
 Route::post('/colocations/{colocation}/expenses', [ExpenseController::class , 'store'])
     ->name('expenses.store')->middleware('auth');
 
-Route::post('/payments', [PaymentController::class, 'store'])
+Route::post('/payments', [PasswordController::class , 'store'])
     ->name('payments.store')
     ->middleware('auth');
 
+Route::post('/colocation/{colocation}/cancel', [ColocationController::class, 'cancel'])
+    ->name('colocation.cancel')
+    ->middleware('auth');
 
 
 require __DIR__.'/auth.php';

@@ -98,7 +98,7 @@
                     </button>
                 </form>
             </div>
-        @endif
+        @endif²
 
         {{-- EXPENSES --}}
         <div class="bg-white shadow rounded p-5">
@@ -290,8 +290,8 @@
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button"
-                            onclick="closeModal()"
-                            class="px-4 py-2 border rounded">
+                            onclick="cancelExpenseModal()"
+                            class="px-4 py-2 border rounded hover:bg-gray-100">
                         Cancel
                     </button>
 
@@ -309,14 +309,31 @@
     {{-- MODAL SCRIPT --}}
     <script>
         function openModal() {
-            document.getElementById('expenseModal').classList.remove('hidden');
-            document.getElementById('expenseModal').classList.add('flex');
+            const modal = document.getElementById('expenseModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    cancelExpenseModal();
+                }
+            });
         }
 
         function closeModal() {
-            document.getElementById('expenseModal').classList.add('hidden');
-            document.getElementById('expenseModal').classList.remove('flex');
+            const modal = document.getElementById('expenseModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function cancelExpenseModal() {
+            const modal = document.getElementById('expenseModal');
+            const form = modal.querySelector('form');
+
+            form.reset(); 
+            closeModal(); 
         }
     </script>
+
 
 </x-app-layout>
