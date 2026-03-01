@@ -27,9 +27,7 @@
 
             @foreach($colocation->memberships as $membership)
                 @if(is_null($membership->left_at))
-
                     <div class="flex justify-between items-center border-b py-2">
-
                         <div>
                             {{ $membership->user->name }}
 
@@ -49,9 +47,7 @@
                                 </button>
                             </form>
                         @endif
-
                     </div>
-
                 @endif
             @endforeach
         </div>
@@ -64,20 +60,16 @@
                 <form method="POST"
                       action="{{ route('invitations.store', $colocation->id) }}"
                       class="flex gap-2">
-
                     @csrf
-
                     <input type="email"
                            name="email"
                            placeholder="Enter email"
                            required
                            class="border p-2 rounded w-full">
-
                     <button type="submit"
                             class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
                         Send
                     </button>
-
                 </form>
 
                 @error('email')
@@ -91,35 +83,43 @@
             <div>
                 <form method="POST" action="{{ route('memberships.leave') }}">
                     @csrf
-
                     <button onclick="return confirm('Are you sure you want to leave?')"
                             class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
                         Leave colocation
                     </button>
                 </form>
             </div>
-        @endif²
+        @endif
+
+        {{-- CANCEL COLOCATION BUTTON --}}
+        @if(auth()->id() === $colocation->owner_id && $colocation->status !== 'cancelled')
+            <div class="pt-4">
+                <form method="POST" action="{{ route('colocations.cancel', $colocation->id) }}">
+                    @csrf
+                    <button 
+                        onclick="return confirm('Are you sure you want to cancel this colocation?')"
+                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        Cancel Colocation
+                    </button>
+                </form>
+            </div>
+        @endif
 
         {{-- EXPENSES --}}
         <div class="bg-white shadow rounded p-5">
 
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold">Expenses</h2>
-                    <form method="GET" class="mb-4">
-                        <input type="month"
-                            name="month"
-                            value="{{ $month }}"
-                            class="border p-2 rounded">
 
-                        <button class="bg-gray-800 text-white px-3 py-2 rounded">
-                            Filter
-                        </button>
-
-                        <a href="{{ route('colocation.show') }}"
-                        class="ml-2 text-sm text-gray-500 underline">
-                            Reset
-                        </a>
-                    </form>
+                {{-- Month Filter --}}
+                <form method="GET" class="mb-4 flex gap-2">
+                    <input type="month" name="month" value="{{ $month }}" class="border p-2 rounded">
+                    <button class="bg-gray-800 text-white px-3 py-2 rounded">Filter</button>
+                    <a href="{{ route('colocation.show', $colocation->id) }}"
+                       class="ml-2 text-sm text-gray-500 underline">
+                        Reset
+                    </a>
+                </form>
 
                 <button onclick="openModal()"
                         class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
@@ -137,7 +137,6 @@
                         <th class="p-2">Category</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @foreach($colocation->expenses as $expense)
                         <tr class="border-b">
@@ -150,16 +149,12 @@
                     @endforeach
                 </tbody>
             </table>
-
         </div>
 
         {{-- BALANCES --}}
         <div class="bg-white shadow rounded p-5">
-
             <h2 class="text-lg font-semibold mb-4">Balances</h2>
-
             <table class="w-full border">
-
                 <thead>
                     <tr class="bg-gray-100">
                         <th class="p-2">Member</th>
@@ -168,141 +163,97 @@
                         <th class="p-2">Balance</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @foreach($balances as $b)
                         <tr class="border-b">
-
                             <td class="p-2">{{ $b['user']->name }}</td>
-
-                            <td class="p-2">
-                                {{ number_format($b['paid'],2) }} €
-                            </td>
-
-                            <td class="p-2">
-                                {{ number_format($b['share'],2) }} €
-                            </td>
-
-                            <td class="p-2 font-semibold
-                                {{ $b['balance'] < 0 ? 'text-red-600' : 'text-green-600' }}">
+                            <td class="p-2">{{ number_format($b['paid'],2) }} €</td>
+                            <td class="p-2">{{ number_format($b['share'],2) }} €</td>
+                            <td class="p-2 font-semibold {{ $b['balance'] < 0 ? 'text-red-600' : 'text-green-600' }}">
                                 {{ number_format($b['balance'],2) }} €
                             </td>
-
                         </tr>
                     @endforeach
                 </tbody>
-
             </table>
-
         </div>
 
         {{-- WHO OWES WHO --}}
-            <div class="bg-white shadow rounded p-5">
-                <h2 class="text-lg font-semibold mb-4">Who Owes Who</h2>
-
+        <div class="bg-white shadow rounded p-5">
+            <h2 class="text-lg font-semibold mb-4">Who Owes Who</h2>
+            @php
+                $settlements = [];
+                $owedMembers = collect($balances)->filter(fn($b) => $b['balance'] < 0);
+                $owedByMembers = collect($balances)->filter(fn($b) => $b['balance'] > 0);
+            @endphp
+            @foreach($owedMembers as $debtor)
                 @php
-                    $settlements = [];
-                    $owedMembers = collect($balances)->filter(fn($b) => $b['balance'] < 0);
-                    $owedByMembers = collect($balances)->filter(fn($b) => $b['balance'] > 0);
+                    $amountOwed = abs($debtor['balance']);
                 @endphp
-
-                @foreach($owedMembers as $debtor)
+                @foreach($owedByMembers as $creditor)
+                    @if($amountOwed <= 0) @break @endif
                     @php
-                        $amountOwed = abs($debtor['balance']);
+                        $payAmount = min($amountOwed, $creditor['balance']);
+                        $settlements[] = [
+                            'from' => $debtor['user']->name,
+                            'from_id' => $debtor['user']->id,
+                            'to' => $creditor['user']->name,
+                            'to_id' => $creditor['user']->id,
+                            'amount' => $payAmount
+                        ];
+                        $amountOwed -= $payAmount;
+                        $creditor['balance'] -= $payAmount;
                     @endphp
-
-                    @foreach($owedByMembers as $creditor)
-                        @if($amountOwed <= 0) @break @endif
-
-                        @php
-                            $payAmount = min($amountOwed, $creditor['balance']);
-                            $settlements[] = [
-                                'from' => $debtor['user']->name,
-                                'from_id' => $debtor['user']->id,
-                                'to' => $creditor['user']->name,
-                                'to_id' => $creditor['user']->id,
-                                'amount' => $payAmount
-                            ];
-                            $amountOwed -= $payAmount;
-                            $creditor['balance'] -= $payAmount;
-                        @endphp
-                    @endforeach
                 @endforeach
+            @endforeach
 
-                @if(count($settlements) === 0)
-                    <p class="text-gray-500">All balances are settled.</p>
-                @else
-                    <ul class="space-y-2">
-                        @foreach($settlements as $s)
-                            <form method="POST" action="{{ route('payments.store') }}">
-                                @csrf
-
-                                <input type="hidden" name="colocation_id" value="{{ $colocation->id }}">
-                                <input type="hidden" name="from_user_id" value="{{ $s['from_id'] }}">
-                                <input type="hidden" name="to_user_id" value="{{ $s['to_id'] }}">
-                                <input type="hidden" name="amount" value="{{ $s['amount'] }}">
-
-                                <button class="text-sm bg-green-600 text-white px-2 py-1 rounded">
-                                    Mark as paid
-                                </button>
-                            </form>
-                        @endforeach
-                    </ul>
-                @endif
-            </div>
-
+            @if(count($settlements) === 0)
+                <p class="text-gray-500">All balances are settled.</p>
+            @else
+                <ul class="space-y-2">
+                    @foreach($settlements as $s)
+                        <form method="POST" action="{{ route('payments.store') }}">
+                            @csrf
+                            <input type="hidden" name="colocation_id" value="{{ $colocation->id }}">
+                            <input type="hidden" name="from_user_id" value="{{ $s['from_id'] }}">
+                            <input type="hidden" name="to_user_id" value="{{ $s['to_id'] }}">
+                            <input type="hidden" name="amount" value="{{ $s['amount'] }}">
+                            <button class="text-sm bg-green-600 text-white px-2 py-1 rounded">
+                                Mark as paid
+                            </button>
+                        </form>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
 
     </div>
 
     {{-- MODAL ADD EXPENSE --}}
     <div id="expenseModal"
          class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center">
-
         <div class="bg-white w-full max-w-md p-6 rounded shadow-lg">
-
             <h2 class="text-xl font-bold mb-4 text-gray-900">Add Expense</h2>
-
-            <form action="{{ route('expenses.store', $colocation->id) }}"
-                  method="POST"
-                  class="space-y-3">
-
+            <form action="{{ route('expenses.store', $colocation->id) }}" method="POST" class="space-y-3">
                 @csrf
-
-                <input type="text" name="title" placeholder="Title"
-                       required class="border p-2 w-full rounded">
-
-                <input type="number" step="0.01" name="amount" placeholder="Amount"
-                       required class="border p-2 w-full rounded">
-
-                <input type="date" name="date"
-                       required class="border p-2 w-full rounded">
-
-                <select name="category_id"
-                        required class="border p-2 w-full rounded">
-
+                <input type="text" name="title" placeholder="Title" required class="border p-2 w-full rounded">
+                <input type="number" step="0.01" name="amount" placeholder="Amount" required class="border p-2 w-full rounded">
+                <input type="date" name="date" required class="border p-2 w-full rounded">
+                <select name="category_id" required class="border p-2 w-full rounded">
                     @foreach($colocation->categories as $category)
-                        <option value="{{ $category->id }}">
-                            {{ $category->name }}
-                        </option>
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
                     @endforeach
-
                 </select>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button"
-                            onclick="cancelExpenseModal()"
-                            class="px-4 py-2 border rounded hover:bg-gray-100">
+                    <button type="button" onclick="cancelExpenseModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
                         Cancel
                     </button>
-
-                    <button type="submit"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded">
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">
                         Save
                     </button>
                 </div>
-
             </form>
-
         </div>
     </div>
 
@@ -312,11 +263,8 @@
             const modal = document.getElementById('expenseModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) {
-                    cancelExpenseModal();
-                }
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) cancelExpenseModal();
             });
         }
 
@@ -328,12 +276,9 @@
 
         function cancelExpenseModal() {
             const modal = document.getElementById('expenseModal');
-            const form = modal.querySelector('form');
-
-            form.reset(); 
-            closeModal(); 
+            modal.querySelector('form').reset();
+            closeModal();
         }
     </script>
-
 
 </x-app-layout>

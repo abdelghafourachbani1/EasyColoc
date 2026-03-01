@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Membership;
 use Illuminate\Http\Request;
 use App\Services\BalanceService;
+use App\Services\ReputationService;
 use App\Models\Payments;
 
 class MembershipController extends Controller {
-
-    public function remove(Membership $membership, BalanceService $balanceService) {
+ 
+    public function remove( Membership $membership, BalanceService $balanceService, ReputationService $reputationService) {
         $colocation = $membership->colocation;
 
         if (auth()->id() !== $colocation->owner_id) {
@@ -20,13 +21,13 @@ class MembershipController extends Controller {
             return back()->with('info', 'Owner cannot be removed');
         }
 
-        if ($membership->left_at) {
-            return back()->with('info', 'Member already left.');
-        }
-
-        $balance = $balanceService->getUserBalance($colocation, $membership->user_id);
+        $balance = $balanceService->getUserBalance(
+            $colocation,
+            $membership->user_id
+        );
 
         if ($balance < 0) {
+
             Payments::create([
                 'colocation_id' => $colocation->id,
                 'from_user_id'  => $colocation->owner_id,
@@ -34,21 +35,21 @@ class MembershipController extends Controller {
                 'amount'        => abs($balance),
             ]);
 
-            $membership->user->decrement('reputation');
+            $reputationService->penalize($membership->user);
         }
 
         if ($balance > 0) {
-            $membership->user->increment('reputation');
+            $reputationService->reward($membership->user);
         }
 
         $membership->update([
             'left_at' => now()
         ]);
 
-        return back()->with('success', 'Member removed successfully');
+        return back()->with('success', 'Member removed successfully.');
     }
 
-    public function leave() {
+    public function leave( BalanceService $balanceService, ReputationService $reputationService) {
         $user = auth()->user();
         $membership = $user->activeMembership;
 
@@ -56,50 +57,28 @@ class MembershipController extends Controller {
             return back()->with('info', 'You have no active colocation.');
         }
 
-        $colocation = $membership->colocation()->with('memberships.user', 'expenses.payeur', 'expenses.category')->first();
+        $colocation = $membership->colocation;
 
-        $balances = [];
-        $members = $colocation->memberships->whereNull('left_at')->pluck('user');
-
-        foreach ($members as $member) {
-            $balances[$member->id] = [
-                'user' => $member,
-                'paid' => 0,
-                'share' => 0,
-                'balance' => 0
-            ];
+        if ($colocation->owner_id === $user->id) {
+            return back()->with('info', 'Owner cannot leave the colocation.');
         }
 
-        foreach ($colocation->expenses as $expense) {
-            $numMembers = count($members);
-            $share = $expense->amount / $numMembers;
-            $balances[$expense->user_id]['paid'] += $expense->amount;
+        $balance = $balanceService->getUserBalance(
+            $colocation,
+            $user->id
+        );
 
-            foreach ($members as $member) {
-                $balances[$member->id]['share'] += $share;
-            }
-        }
-
-        foreach ($balances as $id => &$b) {
-            $b['balance'] = $b['paid'] - $b['share'];
-        }
-
-        $userBalance = $balances[$user->id]['balance'];
-
-        if ($userBalance < 0) {
-            $user->reputation -= 1; 
-            $ownerMembership = $colocation->owner;
+        if ($balance < 0) {
+            $reputationService->penalize($user);
         } else {
-            $user->reputation += 1;
+            $reputationService->reward($user);
         }
 
-        $user->save();
+        $membership->update([
+            'left_at' => now()
+        ]);
 
-        $membership->left_at = now();
-        $membership->save();
-
-        return to_route('dashboard')->with('success', 'You have left the colocation.');
+        return to_route('dashboard')
+            ->with('success', 'You have left the colocation.');
     }
-
-
 }

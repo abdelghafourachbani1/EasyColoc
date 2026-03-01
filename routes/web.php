@@ -62,7 +62,7 @@ Route::post('/payments', [PasswordController::class , 'store'])
     ->middleware('auth');
 
 Route::post('/colocation/{colocation}/cancel', [ColocationController::class, 'cancel'])
-    ->name('colocation.cancel')
+    ->name('colocations.cancel')
     ->middleware('auth');
 
 

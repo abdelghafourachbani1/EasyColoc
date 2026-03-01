@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Colocation;
 use App\Models\Membership;
 use Illuminate\Http\Request;
-use \App\Services\BalanceService;
+use App\Services\BalanceService;
+use App\Services\ReputationService;
+use App\Models\Payments;
+
 
 class ColocationController extends Controller {
 
@@ -88,37 +91,45 @@ class ColocationController extends Controller {
         return view('colocation.show', compact('colocation', 'balances', 'month'));
     }
 
-    public function cancel(Colocation $colocation) {
-
+    public function cancel(Colocation $colocation, BalanceService $balanceService, ReputationService $reputationService) {
         if (auth()->id() !== $colocation->owner_id) {
             abort(403);
         }
 
-        $memberships = $colocation->memberships()->whereNull('left_at')->get();
+        $members = $colocation->memberships->whereNull('left_at');
 
-        foreach ($memberships as $membership) {
-
-            $balance = app()->call(
-                [app(BalanceService::class), 'getUserBalance'],
-                ['colocation' => $colocation, 'userId' => $membership->user_id]
-            );
-
-            if ($balance < 0) {
-                $membership->user->decrement('reputation');
-            } else {
-                $membership->user->increment('reputation');
+        foreach ($members as $membership) {
+            if ($membership->user_id === $colocation->owner_id) {
+                continue;
             }
 
-            $membership->update(['left_at' => now()]);
+            $balance = $balanceService->getUserBalance($colocation, $membership->user_id);
+
+            if ($balance < 0) {
+                Payments::create([
+                    'colocation_id' => $colocation->id,
+                    'from_user_id'  => $colocation->owner_id,
+                    'to_user_id'    => $membership->user_id,
+                    'amount'        => abs($balance),
+                ]);
+
+                $reputationService->penalize($membership->user);
+            } else {
+                $reputationService->reward($membership->user);
+            }
+
+            $membership->update([
+                'left_at' => now()
+            ]);
         }
 
         $colocation->update([
             'status' => 'cancelled'
         ]);
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Colocation cancelled');
+        return to_route('dashboard')->with('success', 'Colocation cancelled successfully.');
     }
+
 
 
 }
