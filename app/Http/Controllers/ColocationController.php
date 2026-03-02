@@ -35,25 +35,29 @@ class ColocationController extends Controller {
         return to_route('dashboard')->with('success','colcation created succesfully');
     }
 
-    public function show($id, Request $request) {
-        $colocation = Colocation::with([
+    public function show(Colocation $colocation, Request $request) {
+        $colocation->load([
             'memberships.user',
             'expenses.payeur',
             'expenses.category',
             'categories'
-        ])->findOrFail($id);
+        ]);
 
-        $month = $request->get('month'); 
+        $month = $request->get('month');
 
-        $expenses = $colocation->expenses();
+        $expensesQuery = $colocation->expenses();
+
         if ($month) {
-            $expenses = $expenses->whereYear('date', substr($month, 0, 4))
-                            ->whereMonth('date', substr($month, 5, 2));
+            $expensesQuery->whereYear('date', substr($month, 0, 4))
+                        ->whereMonth('date', substr($month, 5, 2));
         }
-        $expenses = $expenses->with('payeur', 'category')->get();
+
+        $expenses = $expensesQuery->with('payeur', 'category')->get();
 
         $members = $colocation->memberships->whereNull('left_at')->pluck('user');
+
         $balances = [];
+
         foreach ($members as $member) {
             $balances[$member->id] = [
                 'user' => $member,
@@ -66,6 +70,7 @@ class ColocationController extends Controller {
         foreach ($expenses as $expense) {
             $numMembers = count($members);
             $share = $expense->amount / $numMembers;
+
             $balances[$expense->user_id]['paid'] += $expense->amount;
 
             foreach ($members as $member) {
@@ -73,11 +78,11 @@ class ColocationController extends Controller {
             }
         }
 
-        foreach ($balances as $id => &$b) {
+        foreach ($balances as &$b) {
             $b['balance'] = $b['paid'] - $b['share'];
         }
 
-        return view('colocation.show', [
+        return view('colocations.show', [
             'colocation' => $colocation,
             'balances'   => $balances,
             'month'      => $month,

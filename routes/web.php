@@ -7,6 +7,7 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymentController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,20 +27,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/colocations', [ColocationController::class, 'store'])
         ->name('colocations.store');
 
-    Route::middleware('auth')->get('/colocation', [ColocationController::class, 'show'])
+    Route::get('/colocation/{colocation}', [ColocationController::class, 'show'])
     ->name('colocations.show');
 
-});
+    Route::get('/invitations/{token}/{action}' , [InvitationController::class , 'respond'])
+        ->name('invitations.respond');
 
-Route::middleware('auth')->group(function() {
-    Route::post('/invitations' , [InvitationController::class , 'store'])
-        ->name('invitations.store');
-
-    Route::get('/invitations/{token}/{action}' , [InvitationController::class , 'repond'])
-        ->name('invitations.respod');
-});
-
-Route::middleware('auth')->group(function () {
     Route::post('colocations/{colocation}/invite',[InvitationController::class , 'store'])
         ->name('invitations.store');
 
@@ -57,9 +50,8 @@ Route::middleware('auth')->group(function () {
 Route::post('/colocations/{colocation}/expenses', [ExpenseController::class , 'store'])
     ->name('expenses.store')->middleware('auth');
 
-Route::post('/payments', [PasswordController::class , 'store'])
-    ->name('payments.store')
-    ->middleware('auth');
+Route::post('/payments', [PaymentController::class, 'store'])
+    ->name('payments.store')->middleware('auth');
 
 Route::post('/colocation/{colocation}/cancel', [ColocationController::class, 'cancel'])
     ->name('colocations.cancel')

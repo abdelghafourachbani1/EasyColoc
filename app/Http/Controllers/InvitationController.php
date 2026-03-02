@@ -30,37 +30,41 @@ class InvitationController extends Controller
 
         Mail::to($request->email)->send(new ColocationInvitationMail($invitaion));
 
+        return to_route('colocations.show',$colocation)
+                    ->with('success','Invitation sent successfully to'. $request->email);
     }
 
     public function accept($token) {
-
-        $invitaion = Invitation::where('token',$token)
-            ->where('status','pending')->firstOrFail();
+        $invitation = Invitation::where('token', $token)
+            ->where('status', 'pending')
+            ->firstOrFail();
 
         $user = auth()->user();
-        
-        if ($user->email !== $invitaion->email) {
-            abort(403);
+
+        if ($user->email !== $invitation->email) {
+            abort(403, "This invitation is not for your account.");
         }
 
-        if ($user->activeMembership) {
-            to_route('dashboard');
+        $existing = Membership::where('user_id', $user->id)
+            ->where('colocation_id', $invitation->colocation_id)
+            ->first();
+
+        if (!$existing) {
+            Membership::create([
+                'user_id' => $user->id,
+                'colocation_id' => $invitation->colocation_id,
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
         }
 
-        Membership::create([
-            'user_id' => $user->id,
-            'colocation_id' => $invitaion->colocation_id,
-            'role' => 'member',
-            'joindes_at' => now(),
-        ]);
-
-        $invitaion->update([
+        $invitation->update([
             'status' => 'accepted'
         ]);
 
-        return to_route('colocations.show',$invitaion->colocation_id);
-    } 
-
+        return to_route('colocations.show', $invitation->colocation)
+            ->with('success', 'You joined the colocation successfully!');
+    }
 
 
 }

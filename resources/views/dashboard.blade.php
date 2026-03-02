@@ -1,18 +1,21 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
-
 @if(auth()->user()->activeMembership)
-    <a href="{{ route('colocations.show') }}">Go to my colocation</a>
+    @php
+        $membership = auth()->user()->activeMembership;
+        $colocation = $membership->colocation;
+    @endphp
+
+    <a href="{{ route('colocations.show', $colocation) }}" 
+       class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+       Go to my colocation
+    </a>
 @else
     <form method="POST" action="{{ route('colocations.store') }}">
         @csrf
         <input type="text" name="title" placeholder="Colocation name" required>
-        <button type="submit">Create Colocation</button>
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+            Create Colocation
+        </button>
     </form>
 @endif
-
 </x-app-layout>

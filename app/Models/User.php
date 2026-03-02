@@ -54,4 +54,8 @@ class User extends Authenticatable
         return $this->hasOne(Membership::class)->whereNull('left_at');
     }
 
+    public function ownedColocations() {
+        return $this->hasMany(Colocation::class, 'owner_id');
+    }
+
 }

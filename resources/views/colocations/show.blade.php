@@ -54,28 +54,26 @@
 
         {{-- INVITE --}}
         @if(auth()->id() === $colocation->owner_id)
-            <div class="bg-white shadow rounded p-5">
-                <h2 class="text-lg font-semibold mb-3">Invite a member</h2>
+        <div class="bg-white shadow rounded p-5">
+            <h2 class="text-lg text-blue font-semibold mb-3">Invite a member</h2>
 
-                <form method="POST"
-                      action="{{ route('invitations.store', $colocation->id) }}"
-                      class="flex gap-2">
-                    @csrf
-                    <input type="email"
-                           name="email"
-                           placeholder="Enter email"
-                           required
-                           class="border p-2 rounded w-full">
-                    <button type="submit"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                        Send
-                    </button>
-                </form>
+            <form method="POST"
+                action="{{ route('invitations.store', $colocation) }}"
+                class="flex gap-2">
+                @csrf
 
-                @error('email')
-                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
-                @enderror
-            </div>
+                <input type="email"
+                    name="email"
+                    placeholder="Enter email"
+                    required
+                    class="border p-2 rounded w-full">
+
+                <button type="submit"
+                        class="bg-indigo-600 text-blue px-4 py-2 rounded hover:bg-indigo-700">
+                    Send
+                </button>
+            </form>
+        </div>
         @endif
 
         {{-- LEAVE COLOCATION --}}
@@ -98,7 +96,7 @@
                     @csrf
                     <button 
                         onclick="return confirm('Are you sure you want to cancel this colocation?')"
-                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        class="bg-red-600 text-blue px-4 py-2 rounded hover:bg-red-700">
                         Cancel Colocation
                     </button>
                 </form>
@@ -115,10 +113,10 @@
                 <form method="GET" class="mb-4 flex gap-2">
                     <input type="month" name="month" value="{{ $month }}" class="border p-2 rounded">
                     <button class="bg-gray-800 text-white px-3 py-2 rounded">Filter</button>
-                    <a href="{{ route('colocation.show', $colocation->id) }}"
-                       class="ml-2 text-sm text-gray-500 underline">
+                        <a href="{{ route('colocations.show', $colocation) }}"
+                        class="ml-2 text-sm text-gray-500 underline">
                         Reset
-                    </a>
+                        </a>
                 </form>
 
                 <button onclick="openModal()"
