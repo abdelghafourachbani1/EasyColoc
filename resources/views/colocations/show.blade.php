@@ -28,6 +28,12 @@
                                 Add Expense
                             </a>
                             @if(auth()->id() === $colocation->owner_id)
+                                <a href="{{ route('categories.index', $colocation) }}" class="bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-white px-6 py-3 rounded-2xl font-bold backdrop-blur-sm transition flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                                    Categories
+                                </a>
+                            @endif
+                            @if(auth()->id() === $colocation->owner_id)
                                 <form action="{{ route('colocations.cancel', $colocation) }}" method="POST" onsubmit="return confirm('Cancel this colocation?')">
                                     @csrf
                                     <button class="bg-red-500/20 hover:bg-red-500/40 border border-red-400/30 text-white px-6 py-3 rounded-2xl font-bold backdrop-blur-sm transition flex items-center justify-center w-full md:w-auto">

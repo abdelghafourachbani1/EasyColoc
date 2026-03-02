@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\CategoryController;
 
 use App\Http\Controllers\DashboardController;
 
@@ -47,6 +48,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/colocation/leave', [MembershipController::class, 'leave'])
         ->name('memberships.leave');
+
+    Route::get('/colocation/{colocation}/categories', [CategoryController::class, 'index'])
+        ->name('categories.index');
+    Route::post('/colocation/{colocation}/categories', [CategoryController::class, 'store'])
+        ->name('categories.store');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
+        ->name('categories.destroy');
 
 });
 
