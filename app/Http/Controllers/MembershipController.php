@@ -8,9 +8,11 @@ use App\Services\BalanceService;
 use App\Services\ReputationService;
 use App\Models\Payments;
 
-class MembershipController extends Controller {
- 
-    public function remove( Membership $membership, BalanceService $balanceService, ReputationService $reputationService) {
+class MembershipController extends Controller
+{
+
+    public function remove(Membership $membership, BalanceService $balanceService, ReputationService $reputationService)
+    {
         $colocation = $membership->colocation;
 
         if (auth()->id() !== $colocation->owner_id) {
@@ -18,27 +20,28 @@ class MembershipController extends Controller {
         }
 
         if ($membership->user_id === $colocation->owner_id) {
-            return back()->with('info', 'Owner cannot be removed');
+            return to_route('dashboard')->with('info', 'Owner cannot be removed. You can cancel the colocation instead.');
         }
 
-        $balance = $balanceService->getUserBalance(
-            $colocation,
-            $membership->user_id
-        );
+
+        $balance = $balanceService->getUserBalance($colocation, $membership->user_id);
 
         if ($balance < 0) {
+            // Debt is transferred to owner: create a payment from owner to the people this user owed?
+            // "Owner removing member with debt: debt is transferred to owner"
+            // Implementation: Create a payment from owner to the colocation pool (effectively).
+            // Actually, if we just mark them as left, they are no longer in the balance calculation.
+            // To "transfer debt to owner", we create a payment where the owner pays the amount the member owed.
 
             Payments::create([
                 'colocation_id' => $colocation->id,
-                'from_user_id'  => $colocation->owner_id,
-                'to_user_id'    => $membership->user_id,
-                'amount'        => abs($balance),
+                'from_user_id' => $colocation->owner_id,
+                'to_user_id' => $membership->user_id, // This increases the member's balance to 0
+                'amount' => abs($balance),
             ]);
 
             $reputationService->penalize($membership->user);
-        }
-
-        if ($balance > 0) {
+        } else {
             $reputationService->reward($membership->user);
         }
 
@@ -46,10 +49,11 @@ class MembershipController extends Controller {
             'left_at' => now()
         ]);
 
-        return back()->with('success', 'Member removed successfully.');
+        return back()->with('success', 'Member removed successfully and debt transferred to owner.');
     }
 
-    public function leave( BalanceService $balanceService, ReputationService $reputationService) {
+    public function leave(BalanceService $balanceService, ReputationService $reputationService)
+    {
         $user = auth()->user();
         $membership = $user->activeMembership;
 
@@ -60,13 +64,11 @@ class MembershipController extends Controller {
         $colocation = $membership->colocation;
 
         if ($colocation->owner_id === $user->id) {
-            return back()->with('info', 'Owner cannot leave the colocation.');
+            return to_route('dashboard')->with('info', 'Owner cannot leave the colocation. Please cancel it instead if you wish to close it.');
         }
 
-        $balance = $balanceService->getUserBalance(
-            $colocation,
-            $user->id
-        );
+
+        $balance = $balanceService->getUserBalance($colocation, $user->id);
 
         if ($balance < 0) {
             $reputationService->penalize($user);
@@ -81,4 +83,5 @@ class MembershipController extends Controller {
         return to_route('dashboard')
             ->with('success', 'You have left the colocation.');
     }
+
 }

@@ -11,14 +11,16 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        $this->authorize('admin'); 
+        $this->authorize('admin');
 
         $stats = [
-            'total_users'      => User::count(),
+            'total_users' => User::count(),
             'total_colocations' => Colocation::count(),
-            'total_expenses'   => Expense::count(),
-            'banned_users'     => User::where('banned', true)->count(),
+            'total_expenses' => Expense::count(),
+            'total_volume' => Expense::sum('amount'),
+            'banned_users' => User::where('banned', true)->count(),
         ];
+
 
         $users = User::orderBy('name')->get();
 

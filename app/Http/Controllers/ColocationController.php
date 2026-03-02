@@ -8,15 +8,17 @@ use Illuminate\Http\Request;
 use App\Services\BalanceService;
 use App\Services\ReputationService;
 use App\Models\Payments;
+use App\Services\BalanceService as ServicesBalanceService;
 
+class ColocationController extends Controller
+{
 
-class ColocationController extends Controller {
-
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         $user = auth()->user();
 
         if ($user->activeMembership) {
-            return back()->with('error','you already have an active colocation');
+            return back()->with('error', 'you already have an active colocation');
         }
 
         $colocation = Colocation::create([
@@ -28,14 +30,15 @@ class ColocationController extends Controller {
         Membership::create([
             'user_id' => $user->id,
             'colocation_id' => $colocation->id,
-            'role' => 'owner' ,
+            'role' => 'owner',
             'joined_at' => now()
         ]);
 
-        return to_route('dashboard')->with('success','colcation created succesfully');
+        return to_route('dashboard')->with('success', 'colcation created succesfully');
     }
 
-    public function show(Colocation $colocation, Request $request) {
+    public function show(Colocation $colocation, Request $request, BalanceService $balanceService)
+    {
         $colocation->load([
             'memberships.user',
             'expenses.payeur',
@@ -49,48 +52,40 @@ class ColocationController extends Controller {
 
         if ($month) {
             $expensesQuery->whereYear('date', substr($month, 0, 4))
-                        ->whereMonth('date', substr($month, 5, 2));
+                ->whereMonth('date', substr($month, 5, 2));
         }
 
         $expenses = $expensesQuery->with('payeur', 'category')->get();
 
-        $members = $colocation->memberships->whereNull('left_at')->pluck('user');
+        $activeMemberships = $colocation->memberships()->whereNull('left_at')->with('user')->get();
 
         $balances = [];
-
-        foreach ($members as $member) {
-            $balances[$member->id] = [
-                'user' => $member,
-                'paid' => 0,
-                'share' => 0,
-                'balance' => 0,
+        foreach ($activeMemberships as $membership) {
+            $balances[] = [
+                'user' => $membership->user,
+                'paid' => $expenses->where('user_id', $membership->user_id)->sum('amount'),
+                'share' => $expenses->sum('amount') / max(1, $activeMemberships->count()), // Simplified share for the filtered period
+                'balance' => $balanceService->getUserBalance($colocation, $membership->user_id) // This is the TOTAL balance, not just for the month
             ];
         }
 
-        foreach ($expenses as $expense) {
-            $numMembers = count($members);
-            $share = $expense->amount / $numMembers;
+        $settlements = $balanceService->getSettlements($colocation);
 
-            $balances[$expense->user_id]['paid'] += $expense->amount;
-
-            foreach ($members as $member) {
-                $balances[$member->id]['share'] += $share;
-            }
-        }
-
-        foreach ($balances as &$b) {
-            $b['balance'] = $b['paid'] - $b['share'];
-        }
+        $totalVolume = $expenses->sum('amount');
 
         return view('colocations.show', [
             'colocation' => $colocation,
-            'balances'   => $balances,
-            'month'      => $month,
-            'expenses'   => $expenses,
+            'balances' => $balances,
+            'month' => $month,
+            'expenses' => $expenses,
+            'settlements' => $settlements,
+            'totalVolume' => $totalVolume,
         ]);
     }
 
-    public function cancel(Colocation $colocation, BalanceService $balanceService, ReputationService $reputationService) {
+
+    public function cancel(Colocation $colocation, BalanceService $balanceService, ReputationService $reputationService)
+    {
         if (auth()->id() !== $colocation->owner_id) {
             abort(403);
         }
@@ -107,9 +102,9 @@ class ColocationController extends Controller {
             if ($balance < 0) {
                 Payments::create([
                     'colocation_id' => $colocation->id,
-                    'from_user_id'  => $colocation->owner_id,
-                    'to_user_id'    => $membership->user_id,
-                    'amount'        => abs($balance),
+                    'from_user_id' => $colocation->owner_id,
+                    'to_user_id' => $membership->user_id,
+                    'amount' => abs($balance),
                 ]);
 
                 $reputationService->penalize($membership->user);

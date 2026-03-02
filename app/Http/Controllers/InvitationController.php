@@ -13,8 +13,9 @@ use Illuminate\Support\Str;
 class InvitationController extends Controller
 {
 
-    public function store(Request $request , Colocation $colocation) {
-        if ($colocation->owner_id !== auth()->id() ) {
+    public function store(Request $request, Colocation $colocation)
+    {
+        if ($colocation->owner_id !== auth()->id()) {
             abort(403);
         }
 
@@ -30,11 +31,12 @@ class InvitationController extends Controller
 
         Mail::to($request->email)->send(new ColocationInvitationMail($invitaion));
 
-        return to_route('colocations.show',$colocation)
-                    ->with('success','Invitation sent successfully to'. $request->email);
+        return to_route('colocations.show', $colocation)
+            ->with('success', 'Invitation sent successfully to' . $request->email);
     }
 
-    public function accept($token) {
+    public function accept($token)
+    {
         $invitation = Invitation::where('token', $token)
             ->where('status', 'pending')
             ->firstOrFail();
@@ -44,6 +46,11 @@ class InvitationController extends Controller
         if ($user->email !== $invitation->email) {
             abort(403, "This invitation is not for your account.");
         }
+
+        if ($user->activeMembership) {
+            return to_route('dashboard')->with('error', "You already have an active colocation.");
+        }
+
 
         $existing = Membership::where('user_id', $user->id)
             ->where('colocation_id', $invitation->colocation_id)

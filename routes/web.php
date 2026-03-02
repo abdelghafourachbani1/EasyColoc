@@ -6,16 +6,19 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaymentController;
+
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -28,27 +31,31 @@ Route::middleware('auth')->group(function () {
         ->name('colocations.store');
 
     Route::get('/colocation/{colocation}', [ColocationController::class, 'show'])
-    ->name('colocations.show');
+        ->name('colocations.show');
 
-    Route::get('/invitations/{token}/{action}' , [InvitationController::class , 'respond'])
+    Route::get('/invitations/{token}/{action}', [InvitationController::class, 'respond'])
         ->name('invitations.respond');
 
-    Route::post('colocations/{colocation}/invite',[InvitationController::class , 'store'])
+    Route::post('colocations/{colocation}/invite', [InvitationController::class, 'store'])
         ->name('invitations.store');
 
-    Route::get('/invitations/{token}' , [InvitationController::class , 'accept'])
+    Route::get('/invitations/{token}', [InvitationController::class, 'accept'])
         ->name('invitations.accept');
 
-    Route::post('/memberships/{membership}/remove' , [MembershipController::class , 'remove'])
+    Route::post('/memberships/{membership}/remove', [MembershipController::class, 'remove'])
         ->name('memberships.remove');
 
-    Route::post('/colocation/leave' , [MembershipController::class , 'leave'])
+    Route::post('/colocation/leave', [MembershipController::class, 'leave'])
         ->name('memberships.leave');
-    
+
 });
 
-Route::post('/colocations/{colocation}/expenses', [ExpenseController::class , 'store'])
-    ->name('expenses.store')->middleware('auth');
+Route::get('/colocations/{colocation}/expenses/create', [ExpenseController::class, 'create'])
+    ->name('expenses.create');
+
+Route::post('/colocations/{colocation}/expenses', [ExpenseController::class, 'store'])
+    ->name('expenses.store');
+
 
 Route::post('/payments', [PaymentController::class, 'store'])
     ->name('payments.store')->middleware('auth');
@@ -64,4 +71,4 @@ Route::middleware(['auth', 'can:admin'])->group(function () {
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

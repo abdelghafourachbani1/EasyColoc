@@ -46,16 +46,30 @@ class User extends Authenticatable
         ];
     }
 
-    public function memberships() {
+    public function memberships()
+    {
         return $this->hasMany(Membership::class);
     }
 
-    public function activeMembership() {
+    public function activeMembership()
+    {
         return $this->hasOne(Membership::class)->whereNull('left_at');
     }
 
-    public function ownedColocations() {
+    public function ownedColocations()
+    {
         return $this->hasMany(Colocation::class, 'owner_id');
     }
 
+    public function getIsGlobalAdminAttribute()
+    {
+        return $this->is_admin;
+    }
+
+    public function getIsBannedAttribute()
+    {
+        return $this->banned;
+    }
+
 }
+

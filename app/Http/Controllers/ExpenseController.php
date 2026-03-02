@@ -8,11 +8,30 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    public function store(Request $request, $colocationId) {
+    public function create(Colocation $colocation)
+    {
+        $this->authorizeMembership($colocation);
+        return view('expenses.create', compact('colocation'));
+    }
+
+    private function authorizeMembership(Colocation $colocation)
+    {
+        $membership = auth()->user()->memberships()
+            ->where('colocation_id', $colocation->id)
+            ->whereNull('left_at')
+            ->first();
+
+        if (!$membership) {
+            abort(403, 'You are not an active member of this colocation.');
+        }
+    }
+
+    public function store(Request $request, $colocationId)
+    {
         $user = auth()->user();
 
         $membership = $user->memberships()->where('colocation_id', $colocationId)
-                            >whereNull('left_at')->first();
+            ->whereNull('left_at')->first();
 
         if (!$membership) {
             return back()->with('info', 'You are not an active member of this colocation.');
