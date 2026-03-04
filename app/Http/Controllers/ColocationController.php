@@ -25,7 +25,7 @@ class ColocationController extends Controller
             'title' => $request->title,
             'owner_id' => $user->id,
             'status' => 'active',
-        ]);
+        ]); 
 
         Membership::create([
             'user_id' => $user->id,
@@ -39,6 +39,7 @@ class ColocationController extends Controller
 
     public function show(Colocation $colocation, Request $request, BalanceService $balanceService)
     {
+
         $colocation->load([
             'memberships.user',
             'expenses.payeur',
@@ -64,8 +65,8 @@ class ColocationController extends Controller
             $balances[] = [
                 'user' => $membership->user,
                 'paid' => $expenses->where('user_id', $membership->user_id)->sum('amount'),
-                'share' => $expenses->sum('amount') / max(1, $activeMemberships->count()), // Simplified share for the filtered period
-                'balance' => $balanceService->getUserBalance($colocation, $membership->user_id) // This is the TOTAL balance, not just for the month
+                'share' => $expenses->sum('amount') / max(1, $activeMemberships->count()), 
+                'balance' => $balanceService->getUserBalance($colocation, $membership->user_id) 
             ];
         }
 

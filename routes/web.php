@@ -51,8 +51,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/colocation/{colocation}/categories', [CategoryController::class, 'index'])
         ->name('categories.index');
+
     Route::post('/colocation/{colocation}/categories', [CategoryController::class, 'store'])
         ->name('categories.store');
+        
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
         ->name('categories.destroy');
 

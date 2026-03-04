@@ -27,16 +27,11 @@ class MembershipController extends Controller
         $balance = $balanceService->getUserBalance($colocation, $membership->user_id);
 
         if ($balance < 0) {
-            // Debt is transferred to owner: create a payment from owner to the people this user owed?
-            // "Owner removing member with debt: debt is transferred to owner"
-            // Implementation: Create a payment from owner to the colocation pool (effectively).
-            // Actually, if we just mark them as left, they are no longer in the balance calculation.
-            // To "transfer debt to owner", we create a payment where the owner pays the amount the member owed.
 
             Payments::create([
                 'colocation_id' => $colocation->id,
                 'from_user_id' => $colocation->owner_id,
-                'to_user_id' => $membership->user_id, // This increases the member's balance to 0
+                'to_user_id' => $membership->user_id, 
                 'amount' => abs($balance),
             ]);
 

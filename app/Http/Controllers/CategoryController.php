@@ -36,7 +36,6 @@ class CategoryController extends Controller
     {
         $this->authorizeOwner($category->colocation);
 
-        // Check if there are expenses using this category
         if ($category->expenses()->exists()) {
             return back()->with('error', 'Cannot delete category that has expenses. Please reassign the expenses first.');
         }

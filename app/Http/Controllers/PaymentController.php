@@ -29,17 +29,11 @@ class PaymentController extends Controller
             ->whereNull('left_at')
             ->pluck('user_id');
 
-        if (
-            !$memberIds->contains($data['from_user_id']) ||
-            !$memberIds->contains($data['to_user_id'])
-        ) {
+        if (!$memberIds->contains($data['from_user_id']) || !$memberIds->contains($data['to_user_id'])) {
             abort(403);
         }
 
-        $balance = $balanceService->getUserBalance(
-            $colocation,
-            $data['from_user_id']
-        );
+        $balance = $balanceService->getUserBalance( $colocation , $data['from_user_id']);
 
         if ($balance >= 0) {
             return back()->with('error', 'You have no debt.');

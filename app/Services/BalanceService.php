@@ -10,7 +10,6 @@ class BalanceService
     {
         $balance = 0;
 
-        // Get all members who have not left the colocation
         $members = $colocation->memberships()
             ->whereNull('left_at')
             ->pluck('user_id');
@@ -21,15 +20,10 @@ class BalanceService
             return 0;
         }
 
-        // We should calculate based on members at the time of expense, but for simplicity 
-        // as per requirements, we use current active members or refine this.
-        // Actually, the requirement says "Automatic calculation when expenses are added".
-
         $expenses = $colocation->expenses;
 
         foreach ($expenses as $expense) {
-            // A simplified approach: divide by total current members
-            // In a real app, we might need to know who was a member WHEN the expense was created.
+
             $share = $expense->amount / $totalParticipants;
 
             $isPayer = $expense->user_id === $userId;
@@ -46,21 +40,17 @@ class BalanceService
 
         foreach ($colocation->payments as $payment) {
             if ($payment->from_user_id === $userId) {
-                $balance += $payment->amount; // Paying off debt increases balance
+                $balance += $payment->amount; 
             }
 
             if ($payment->to_user_id === $userId) {
-                $balance -= $payment->amount; // Receiving payment reduces what's owed to you
+                $balance -= $payment->amount; 
             }
         }
 
         return round($balance, 2);
     }
 
-    /**
-     * Calculate who owes whom.
-     * Returns an array of settlements: ['from' => User, 'to' => User, 'amount' => float]
-     */
     public function getSettlements(Colocation $colocation): array
     {
         $members = $colocation->memberships()->whereNull('left_at')->with('user')->get();
